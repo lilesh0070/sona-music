@@ -1,0 +1,1 @@
+import{j as t,t as e,L as a}from"./index-DxY1bOHq.js";function s(){return t.jsx("div",{className:"page",children:t.jsx(e,{title:"A little off the beat",text:"We couldn’t find this page. Let’s get you back to the music.",action:t.jsx(a,{className:"button primary",to:"/",children:"Back to home"})})})}export{s as default};
