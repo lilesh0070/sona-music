@@ -43,6 +43,11 @@ export default function TrackCard({ track, tracks = [track] }) {
           <Heart size={17} fill={l.isLiked(track) ? "currentColor" : "none"} />
         </IconButton>
       </div>
+      {track.source === "youtube" && (
+        <span className="source-label">
+          YouTube · {track.language || "Music"}
+        </span>
+      )}
       <div className="card-caption">
         <div>
           <Link

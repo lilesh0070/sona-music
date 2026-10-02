@@ -1,196 +1,115 @@
+import * as audius from "./audiusApi";
+import {
+  getIndianTracks,
+  searchIndianTracks,
+  getYouTubeTrack,
+  getYouTubeArtistTracks,
+} from "./indianMusic";
 import { buildProfile, rankRecommendations } from "./recommendationEngine";
-const hosts = [
-  "https://api.audius.co/v1",
-  "https://discoveryprovider.audius.co/v1",
-];
-const cache = new Map();
+export * from "./audiusApi";
 export const genres = [
-  { name: "Electronic", color: "#54345f", subtitle: "Find your frequency" },
-  {
-    name: "Hip-Hop/Rap",
-    label: "Hip hop",
-    color: "#985248",
-    subtitle: "Beats with a pulse",
-  },
-  { name: "Pop", color: "#97753b", subtitle: "On repeat, always" },
-  { name: "Rock", color: "#3f6165", subtitle: "Turn it all the way up" },
-  {
-    name: "R&B/Soul",
-    label: "R&B & soul",
-    color: "#694869",
-    subtitle: "A little soul goes a long way",
-  },
-  { name: "Jazz", color: "#847057", subtitle: "Something timeless" },
-  {
-    name: "Lo-Fi",
-    label: "Lo-fi",
-    color: "#396966",
-    subtitle: "Slow down. Tune in.",
-  },
-  { name: "Ambient", color: "#526c91", subtitle: "Room to breathe" },
-  { name: "Dance", color: "#866038", subtitle: "Move to your own rhythm" },
-  { name: "Acoustic", color: "#5d7155", subtitle: "Keep it close" },
-  { name: "Alternative", color: "#77536c", subtitle: "Outside the ordinary" },
-  {
-    name: "Classical",
-    color: "#6b6092",
-    subtitle: "A different kind of escape",
-  },
+  { name: "Hindi", color: "#9d4b54", subtitle: "Bollywood & Hindi sounds" },
+  { name: "Punjabi", color: "#866329", subtitle: "Punjab on repeat" },
+  { name: "Haryanvi", color: "#427c6c", subtitle: "Desi beats, big energy" },
+  ...audius.genres,
 ];
-export const moods = [
-  { name: "Late night", genre: "Electronic", color: "#504475" },
-  { name: "Deep focus", genre: "Lo-Fi", color: "#477e78" },
-  { name: "Slow mornings", genre: "Acoustic", color: "#b28850" },
-  { name: "Good energy", genre: "Dance", color: "#b85b49" },
-  { name: "On the move", genre: "Hip-Hop/Rap", color: "#527493" },
+const merge = (sets) => [
+  ...new Map(sets.flat().map((t) => [t.id, t])).values(),
 ];
-export const fallbackArt = `${import.meta.env.BASE_URL}fallback-art.svg`;
-export function normalizeTrack(t) {
+export async function searchTracks(q, signal) {
+  const results = await Promise.allSettled([
+    searchIndianTracks(q, signal),
+    audius.searchTracks(q, signal),
+  ]);
+  if (signal?.aborted) throw signal.reason;
+  if (results.every((r) => r.status === "rejected")) throw results[0].reason;
+  const found = merge(
+    results.filter((r) => r.status === "fulfilled").map((r) => r.value),
+  );
+  if (results[0].status === "rejected")
+    found.warning = results[0].reason.message;
+  return found;
+}
+export async function getTrendingTracks(genre, signal) {
+  if (["Hindi", "Punjabi", "Haryanvi"].includes(genre))
+    return getIndianTracks(genre, signal);
+  if (genre) return audius.getTrendingTracks(genre, signal);
+  try {
+    return await getIndianTracks(undefined, signal);
+  } catch (e) {
+    if (signal?.aborted) throw e;
+    return audius.getTrendingTracks(undefined, signal);
+  }
+}
+export const getGenreTracks = getTrendingTracks;
+export const getPopularTracks = (signal) =>
+  getTrendingTracks(undefined, signal);
+export async function getNewReleases(signal) {
+  return (await getTrendingTracks(undefined, signal))
+    .sort((a, b) => Date.parse(b.date) - Date.parse(a.date))
+    .slice(0, 40);
+}
+export async function getArtistTracks(id, signal) {
+  return id.startsWith("ytc:")
+    ? getYouTubeArtistTracks(id, signal)
+    : audius.getArtistTracks(id, signal);
+}
+export async function getArtist(id, signal) {
+  if (!id.startsWith("ytc:")) return audius.getArtist(id, signal);
+  const t = (await getArtistTracks(id, signal))[0];
+  if (!t) throw Error("This channel is not in the current catalog.");
   return {
-    id: t.id,
-    title: t.title,
-    artist: t.user?.name || "Unknown artist",
-    artistId: t.user?.id,
-    artistImage: t.user?.profile_picture?.["480x480"],
-    artwork: t.artwork?.["480x480"] || fallbackArt,
-    artworkMirrors: t.artwork?.mirrors || [],
-    duration: t.duration || 0,
-    genre: t.genre || "Electronic",
-    mood: t.mood,
-    tags: t.tags,
-    plays: t.play_count || 0,
-    date: t.release_date || t.created_at,
-    albumId: t.album_backlink?.playlist_id || t.album_backlink?.id,
-    albumName: t.album_backlink?.playlist_name,
-    permalink: t.permalink,
+    id,
+    name: t.artist,
+    profile_picture: { "480x480": t.artwork },
+    follower_count: 0,
+    bio: "Music from this YouTube channel. Playback availability is determined by the publisher.",
+    handle: t.artist,
   };
 }
-export const playable = (t) =>
-  t.is_streamable !== false &&
-  !t.is_stream_gated &&
-  t.is_available !== false &&
-  !t.is_delete;
-async function request(path, params = {}, signal) {
-  const query = new URLSearchParams({
-    app_name: "Sona",
-    ...Object.fromEntries(
-      Object.entries(params).filter(([, v]) => v !== undefined),
-    ),
-  });
-  const key = `${path}?${query}`;
-  const old = cache.get(key);
-  if (old && Date.now() - old.at < 120000) return old.data;
-  let last;
-  for (const host of hosts) {
-    try {
-      const timeout = AbortSignal.timeout(12000);
-      const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
-      const r = await fetch(`${host}${key}`, { signal: combined });
-      if (!r.ok) throw new Error(`Music service returned ${r.status}`);
-      const data = (await r.json()).data;
-      cache.set(key, { at: Date.now(), data });
-      return data;
-    } catch (e) {
-      if (signal?.aborted) throw e;
-      last = e;
-    }
-  }
-  throw new Error("The music service is taking a break. Please try again.", {
-    cause: last,
-  });
-}
-const tracks = (data) => (data || []).filter(playable).map(normalizeTrack);
-export const searchTracks = (q, signal) =>
-  request("/tracks/search", { query: q, limit: 48 }, signal).then(tracks);
-export const getTrendingTracks = (genre, signal) =>
-  request("/tracks/trending", { limit: 60, time: "week", genre }, signal).then(
-    tracks,
-  );
-export const getPopularTracks = (signal) =>
-  request("/tracks/trending", { limit: 60, time: "allTime" }, signal).then(
-    tracks,
-  );
-export const getNewReleases = (signal) =>
-  request("/tracks/latest", { limit: 30 }, signal).then(tracks);
-export const getArtist = (id, signal) =>
-  request(`/users/${encodeURIComponent(id)}`, {}, signal);
-export const getArtistTracks = (id, signal) =>
-  request(
-    `/users/${encodeURIComponent(id)}/tracks`,
-    { limit: 60 },
-    signal,
-  ).then(tracks);
-export const getGenreTracks = (genre, signal) =>
-  getTrendingTracks(genre, signal);
-export const getTrackDetails = (id, signal) =>
-  request(`/tracks/${encodeURIComponent(id)}`, {}, signal).then((d) =>
-    normalizeTrack(Array.isArray(d) ? d[0] : d),
-  );
-export const getStreamUrl = (id) =>
-  `${hosts[0]}/tracks/${encodeURIComponent(id)}/stream?app_name=Sona`;
-export async function getStreamSources(id, signal) {
-  const d = await request(
-    `/tracks/${encodeURIComponent(id)}`,
-    { resolve: true },
-    signal,
-  );
-  const t = Array.isArray(d) ? d[0] : d;
-  if (!playable(t))
-    throw new Error("This track is no longer available for free playback.");
-  return [
-    ...new Set([
-      ...(t.stream?.url
-        ? [
-            t.stream.url,
-            ...(t.stream.mirrors || []).map((host) => {
-              const u = new URL(t.stream.url);
-              return host + u.pathname + u.search;
-            }),
-          ]
-        : []),
-      getStreamUrl(id),
-      `${hosts[1]}/tracks/${encodeURIComponent(id)}/stream?app_name=Sona`,
-    ]),
-  ];
-}
-export const searchArtists = (q, signal) =>
-  request("/users/search", { query: q, limit: 12 }, signal);
-export const searchAlbums = (q, signal) =>
-  request("/playlists/search", { query: q, limit: 24 }, signal).then((d) =>
-    (d || []).filter((a) => a.is_album),
-  );
-export const getAlbum = (id, signal) =>
-  request(`/playlists/${encodeURIComponent(id)}`, {}, signal).then((d) =>
-    Array.isArray(d) ? d[0] : d,
-  );
-export const getAlbumTracks = (id, signal) =>
-  request(`/playlists/${encodeURIComponent(id)}/tracks`, {}, signal).then(
-    tracks,
-  );
 export const getArtistAlbums = (id, signal) =>
-  request(`/users/${encodeURIComponent(id)}/albums`, { limit: 18 }, signal);
+  id.startsWith("ytc:")
+    ? Promise.resolve([])
+    : audius.getArtistAlbums(id, signal);
+export const getTrackDetails = (id, signal) =>
+  id.startsWith("yt:")
+    ? getYouTubeTrack(id, signal)
+    : audius.getTrackDetails(id, signal);
+export async function searchArtists(q, signal) {
+  const sets = await Promise.allSettled([
+    getIndianTracks(undefined, signal),
+    audius.searchArtists(q, signal),
+  ]);
+  const local =
+    sets[0].status === "fulfilled"
+      ? sets[0].value
+          .filter((t) => t.artist.toLowerCase().includes(q.toLowerCase()))
+          .map((t) => ({
+            id: t.artistId,
+            name: t.artist,
+            profile_picture: { "480x480": t.artwork },
+          }))
+      : [];
+  return merge([local, sets[1].status === "fulfilled" ? sets[1].value : []]);
+}
 export async function getFavoriteArtistTracks(liked, signal) {
-  const ids = [...new Set(liked.map((t) => t.artistId))].slice(0, 3);
-  const sets = await Promise.all(
-    ids.map((id) => getArtistTracks(id, signal).catch(() => [])),
+  return merge(
+    await Promise.all(
+      [...new Set(liked.map((t) => t.artistId))]
+        .slice(0, 3)
+        .map((id) => getArtistTracks(id, signal).catch(() => [])),
+    ),
   );
-  return [...new Map(sets.flat().map((t) => [t.id, t])).values()];
 }
 export async function getRecommendations(library, signal) {
   const profile = buildProfile(library);
   const favorite = Object.entries(profile.genres).sort(
     (a, b) => b[1] - a[1],
   )[0]?.[0];
-  const [popular, specific, artists] = await Promise.all([
+  const sets = await Promise.all([
     getPopularTracks(signal),
-    favorite
-      ? getGenreTracks(favorite, signal).catch(() => [])
-      : Promise.resolve([]),
+    favorite ? getGenreTracks(favorite, signal).catch(() => []) : [],
     getFavoriteArtistTracks(library.liked, signal),
   ]);
-  return rankRecommendations(
-    [...artists, ...specific, ...popular],
-    profile,
-    library.history,
-  );
+  return rankRecommendations(merge(sets), profile, library.history);
 }

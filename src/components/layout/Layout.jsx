@@ -16,6 +16,7 @@ import {
   User,
   ArrowUpRight,
   Music2,
+  Download,
 } from "lucide-react";
 import { useLibrary } from "../../context/LibraryContext";
 import { IconButton } from "../common/UI";
@@ -27,6 +28,7 @@ const primary = [
   ["/genres", Grid2X2, "Genres & moods"],
 ];
 const personal = [
+  ["/updates", Download, "Updates & install"],
   ["/library", Library, "Your library"],
   ["/liked", Heart, "Liked songs"],
   ["/recent", Clock3, "Recently played"],
@@ -50,7 +52,7 @@ export function Logo() {
       <span className="brand-icon">
         <AudioLines size={27} strokeWidth={2.6} />
       </span>
-      sona<span className="brand-dot">.</span>
+      vibe<span className="brand-dot">.</span>
     </Link>
   );
 }
@@ -122,11 +124,11 @@ export default function Layout({ children }) {
             <AudioLines size={22} />
             <div>
               Made for your ears.
-              <small>Independent sounds. Endless discovery.</small>
+              <small>Hindi. Punjabi. Haryanvi. Your vibe.</small>
             </div>
           </div>
-          <a href="https://audius.co" target="_blank" rel="noreferrer">
-            Music from Audius
+          <a href="#/updates" target="_blank" rel="noreferrer">
+            YouTube + Audius
             <ArrowUpRight size={13} />
           </a>
         </div>

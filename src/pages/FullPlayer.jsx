@@ -27,7 +27,7 @@ export default function FullPlayer() {
       {p.current ? (
         <section className="full-player-content">
           <Artwork
-            className="full-art"
+            className={`full-art ${p.current.source === "youtube" ? "video-art-space" : ""}`}
             src={p.current.artwork}
             alt={p.current.title}
           />

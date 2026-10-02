@@ -69,7 +69,11 @@ export default function TrackList({ tracks, playlistId, compact = false }) {
           >
             <Heart size={17} fill={l.isLiked(t) ? "currentColor" : "none"} />
           </IconButton>
-          <span className="track-time">{formatTime(t.duration)}</span>
+          <span className="track-time">
+            {t.source === "youtube" && !t.duration
+              ? "YouTube"
+              : formatTime(t.duration)}
+          </span>
           <TrackMenu track={t} playlistId={playlistId} />
         </div>
       ))}

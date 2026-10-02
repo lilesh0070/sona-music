@@ -6,6 +6,7 @@ import Layout from "./components/layout/Layout";
 import Player from "./components/player/Player";
 import Dialogs from "./components/common/Dialogs";
 import { Skeleton } from "./components/common/UI";
+const Updates = lazy(() => import("./pages/Updates"));
 const Home = lazy(() => import("./pages/Home"));
 const Search = lazy(() => import("./pages/Search"));
 const Discover = lazy(() => import("./pages/Discover"));
@@ -51,7 +52,7 @@ class ErrorBoundary extends Component {
           className="button primary"
           onClick={() => window.location.reload()}
         >
-          Reload Sona
+          Reload Vibe
         </button>
       </div>
     ) : (
@@ -84,6 +85,7 @@ function Surface() {
             <Route path="/liked" element={<Liked />} />
             <Route path="/recent" element={<Recent />} />
             <Route path="/playlist/:id" element={<Playlist />} />
+            <Route path="/updates" element={<Updates />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/player" element={<FullPlayer />} />
             <Route path="*" element={<NotFound />} />

@@ -69,8 +69,10 @@ export default function Artist() {
           </span>
           <h1>{a.name}</h1>
           <p>
-            {compact(a.follower_count)} followers · {tracks.length} available
-            tracks
+            {id.startsWith("ytc:")
+              ? "YouTube channel"
+              : `${compact(a.follower_count)} followers`}{" "}
+            · {tracks.length} available tracks
           </p>
         </div>
       </section>

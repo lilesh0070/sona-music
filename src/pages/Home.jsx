@@ -71,6 +71,11 @@ export default function Home() {
         <Link className="pill selected" to="/">
           For you
         </Link>
+        {["Hindi", "Punjabi", "Haryanvi"].map((language) => (
+          <Link key={language} className="pill" to={`/genre/${language}`}>
+            {language}
+          </Link>
+        ))}
         <Link className="pill" to="/discover">
           Discover
         </Link>
@@ -88,15 +93,15 @@ export default function Home() {
           <div className="hero-shade" />
           <div className="hero-copy">
             <span className="hero-label">
-              <span /> THE WEEKLY EDIT
+              <span /> THE INDIAN EDIT
             </span>
             <h2>
-              Less scrolling.
+              Apni language.
               <br />
-              More feeling.
+              Apna vibe.
             </h2>
             <p>
-              A fresh rotation of independent sounds.
+              Hindi, Punjabi, Haryanvi & more.
               <br />A little familiar. A little unexpected.
             </p>
             <div className="hero-actions">
@@ -113,7 +118,7 @@ export default function Home() {
               </Link>
             </div>
             <span className="hero-meta">
-              CURATED FOR THE CURIOUS · UPDATED WEEKLY
+              AUTOMATIC RELEASES · YOUTUBE + AUDIUS
             </span>
           </div>
           <div className="hero-art">
@@ -259,7 +264,7 @@ export default function Home() {
             key={m.name}
             style={{ "--mood-color": m.color }}
           >
-            <span className="mood-number">0{i + 1} / SONA MIX</span>
+            <span className="mood-number">0{i + 1} / VIBE MIX</span>
             <AudioLines size={40} />
             <h3>{m.name}</h3>
             <span>

@@ -1,23 +1,7 @@
-# Verification — October 2, 2026
+# Vibe 2.0 verification — October 2, 2026
 
-The completed Sona application is published at https://lilesh0070.github.io/sona-music/ with source at https://github.com/lilesh0070/sona-music.
+Eight behavior tests pass, covering recommendations, time formatting, Atom metadata normalization, preview/promo exclusion, valid unique YouTube identifiers and all three requested Indian languages. The conventional npm run build succeeded with 1,626 modules using the normal Vite compiler; no special build workaround was needed for this release.
 
-## Passed checks
+Live channel feeds were fetched successfully for twelve Indian music channels. The free rss2json adapter returned HTTP 200 with CORS enabled and needs no key. Feed metadata is cached for an hour and automatic runtime refresh is independent of GitHub workflow permissions. An optional deployment workflow is included as a template because the current GitHub token lacks workflow scope. The Hindi, Punjabi and Haryanvi pages, retained library, update page, source download URL and version manifest were checked. A Haryanvi video, Haridwar Chal Gori, played through the official YouTube player with advancing time and a 3:17 duration. One T-Series video returned YouTube error 150; the error state offered retry, next and Watch on YouTube. Publisher restrictions are respected. Availability can change.
 
-- Vite production bundling resolved 1,621 modules and every lazy route. Production assets were minified and unused generated assets removed.
-- Five behavior tests passed: liked/playlist affinity, skip penalties, completion/repeat scoring, recommendation deduplication and artist diversity, search/listening signals and duration formatting.
-- Public Audius track requests returned real metadata, artist artwork and full-duration tracks. Two stream probes returned HTTP 206 with `audio/mpeg`.
-- Browser playback reached `readyState: 4`, with advancing playback time and no media error; playback continued across routes. Restoring after reload left playback paused and preserved position and queue.
-- Play/pause, automatic next track, seeking and repeat-one were checked in the browser. The queue displayed additions, supported moving tracks, and reflected removal.
-- Like/unlike controls update saved songs. A test playlist was created, populated and renamed; its name and songs survived navigation and reload. Delete displays a confirmation and cancellation preserves the playlist.
-- Debounced search returned categorized songs and artists for RAC. Recent search history, filters, artist details, and the real YOU album with five available tracks rendered correctly.
-- Home, search, discover, trending, genres, Lo-Fi, liked songs, history, library, playlist, profile, full player, artist, album and 404 routes were inspected.
-- Desktop (1440 × 1000) and mobile (390 × 844) layouts were reviewed visually, including the mini-player, mobile navigation and expanded player.
-- No browser console errors appeared in the checked flows.
-- GitHub Pages reports a successful build and the deployed root returns HTTP 200. Relative assets and hash routes work under `/sona-music/`.
-
-## Environment notes
-
-The local Windows sandbox blocks Node subprocess creation. Vite validation therefore used the same source with JSX precompiled by the native esbuild executable, followed by Vite bundling and minification. The delivered project's conventional `npm install`, `npm run dev`, `npm run build` and `npm run deploy` scripts target normal Node environments; running those scripts end-to-end inside this restricted sandbox was unavailable.
-
-Music availability, artwork, catalog coverage and API uptime depend on Audius. This verification is a focused functional and responsive review, not an exhaustive cross-browser or security audit. Source code, production output and screenshots are included with the deliverable.
+The default catalog covers recent channel releases rather than every historical song. Wider YouTube search requires a browser-restricted YouTube Data API key and remains subject to quota. App install availability depends on browser/platform support; iOS uses Add to Home Screen. No audio-download functionality is provided. The offline service worker caches app assets only. Existing libraries retain their storage namespace through the brand and repository rename.

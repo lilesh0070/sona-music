@@ -41,6 +41,7 @@ export default function useSearch(query) {
         error: results.every((r) => r.status === "rejected")
           ? "Search is unavailable right now. Please try again."
           : null,
+        warning: tracks.status === "fulfilled" ? tracks.value.warning : null,
       });
     }, 350);
     return () => {

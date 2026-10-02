@@ -10,9 +10,25 @@ import { useLibrary } from "./LibraryContext";
 import { storageService as storage } from "../services/storageService";
 import { getStreamSources } from "../services/musicApi";
 import { recordEvent } from "../services/analytics";
+import { loadYouTubeAPI } from "../services/youtubePlayer";
+import { useLocation } from "react-router-dom";
 const PlayerContext = createContext();
 export function PlayerProvider({ children }) {
   const library = useLibrary();
+  const location = useLocation();
+  const [videoClosed, setVideoClosed] = useState(false);
+  const youtube = useRef(null),
+    youtubeMount = useRef(null),
+    youtubeReady = useRef(null);
+  const isYouTube = () => live.current.current?.source === "youtube";
+  const position = () =>
+    isYouTube()
+      ? youtube.current?.getCurrentTime?.() || 0
+      : audio.current?.currentTime || 0;
+  const pauseMedia = () => {
+    audio.current?.pause();
+    youtube.current?.pauseVideo?.();
+  };
   const libraryRef = useRef(library);
   libraryRef.current = library;
   const [initial] = useState(() =>
@@ -60,6 +76,7 @@ export function PlayerProvider({ children }) {
   }, []);
   const begin = (tracks, i = 0, random = false) => {
     if (!tracks.length) return;
+    setVideoClosed(false);
     flush(true);
     restoreTime.current = 0;
     intent.current = true;
@@ -90,7 +107,7 @@ export function PlayerProvider({ children }) {
         if (s.repeat === "all") next = 0;
         else {
           intent.current = false;
-          audio.current?.pause();
+          pauseMedia();
           setPlaying(false);
           return;
         }
@@ -102,8 +119,8 @@ export function PlayerProvider({ children }) {
     [flush],
   );
   const previous = () => {
-    if (audio.current?.currentTime > 3) {
-      audio.current.currentTime = 0;
+    if (position() > 3) {
+      seek(0);
       return;
     }
     flush(true);
@@ -113,6 +130,11 @@ export function PlayerProvider({ children }) {
     setNonce((n) => n + 1);
   };
   const attemptPlay = () => {
+    if (isYouTube()) {
+      setVideoClosed(false);
+      youtube.current?.playVideo?.();
+      return;
+    }
     const el = audio.current;
     if (!el) return;
     const src = el.src;
@@ -136,7 +158,7 @@ export function PlayerProvider({ children }) {
     }
     if (loading || playing) {
       intent.current = false;
-      audio.current.pause();
+      pauseMedia();
       setPlaying(false);
       setLoading(false);
     } else {
@@ -148,6 +170,16 @@ export function PlayerProvider({ children }) {
     }
   };
   const seek = (value) => {
+    if (isYouTube()) {
+      const target = Math.max(
+        0,
+        Math.min(value, youtube.current?.getDuration?.() || duration),
+      );
+      youtube.current?.seekTo?.(target, true);
+      setTime(target);
+      previousTick.current = target;
+      return;
+    }
     const el = audio.current;
     if (el && Number.isFinite(el.duration)) {
       el.currentTime = Math.max(0, Math.min(value, el.duration));
@@ -162,7 +194,7 @@ export function PlayerProvider({ children }) {
       return;
     }
     const ctrl = new AbortController();
-    el.pause();
+    pauseMedia();
     setPlaying(false);
     setLoading(intent.current);
     setDuration(current.duration || 0);
@@ -172,6 +204,92 @@ export function PlayerProvider({ children }) {
     sessionSeconds.current = 0;
     started.current = false;
     previousTick.current = restoreTime.current;
+    if (current.source === "youtube") {
+      setVideoClosed(false);
+      el.removeAttribute("src");
+      el.load();
+      loadYouTubeAPI()
+        .then(async (YT) => {
+          if (ctrl.signal.aborted) return;
+          if (!youtube.current) {
+            const mount = document.createElement("div");
+            youtubeMount.current.replaceChildren(mount);
+            youtubeReady.current = new Promise((resolve) => {
+              youtube.current = new YT.Player(mount, {
+                width: "100%",
+                height: "100%",
+                playerVars: {
+                  playsinline: 1,
+                  origin: window.location.origin,
+                  controls: 1,
+                },
+                events: {
+                  onReady: () => resolve(),
+                  onAutoplayBlocked: () => {
+                    setLoading(false);
+                    setPlaying(false);
+                    setError("Tap play in the YouTube player to start.");
+                  },
+                  onError: (event) => {
+                    if (!isYouTube()) return;
+                    setLoading(false);
+                    setPlaying(false);
+                    intent.current = false;
+                    setError(
+                      "YouTube video unavailable (" +
+                        event.data +
+                        "). Choose another song or watch on YouTube.",
+                    );
+                  },
+                  onStateChange: (event) => {
+                    if (!isYouTube()) return;
+                    if (event.data === 1) {
+                      setPlaying(true);
+                      setLoading(false);
+                      setError("");
+                      intent.current = true;
+                      setDuration(youtube.current.getDuration());
+                      if (!started.current) {
+                        started.current = true;
+                        libraryRef.current.recordPlay(live.current.current);
+                      }
+                    } else if (event.data === 2) {
+                      setPlaying(false);
+                      setLoading(false);
+                      intent.current = false;
+                    } else if (event.data === 3) setLoading(true);
+                    else if (event.data === 0) {
+                      setPlaying(false);
+                      recordEvent("track_completed", live.current.current);
+                      advance(true);
+                    }
+                  },
+                },
+              });
+            });
+          }
+          await youtubeReady.current;
+          if (ctrl.signal.aborted) return;
+          youtube.current.setVolume(volume * 100);
+          muted ? youtube.current.mute() : youtube.current.unMute();
+          const item = {
+            videoId: current.videoId,
+            startSeconds: restoreTime.current,
+          };
+          restoreTime.current = 0;
+          intent.current
+            ? youtube.current.loadVideoById(item)
+            : youtube.current.cueVideoById(item);
+        })
+        .catch((e) => {
+          if (!ctrl.signal.aborted) {
+            setError(e.message);
+            setLoading(false);
+            intent.current = false;
+          }
+        });
+      return () => ctrl.abort();
+    }
     getStreamSources(current.id, ctrl.signal)
       .then((urls) => {
         if (ctrl.signal.aborted) return;
@@ -193,6 +311,9 @@ export function PlayerProvider({ children }) {
   useEffect(() => {
     audio.current.volume = volume;
     audio.current.muted = muted;
+    youtube.current?.setVolume?.(volume * 100);
+    if (muted) youtube.current?.mute?.();
+    else youtube.current?.unMute?.();
   }, [volume, muted]);
   useEffect(() => {
     storage.write("player_state", {
@@ -201,30 +322,51 @@ export function PlayerProvider({ children }) {
       volume,
       shuffle,
       repeat,
-      time: audio.current?.currentTime || 0,
+      time: restoreTime.current || position(),
     });
   }, [queue, index, volume, shuffle, repeat]);
   useEffect(() => {
     const timer = setInterval(() => {
       const el = audio.current;
-      if (!el.paused) {
-        const delta = el.currentTime - previousTick.current;
+      const now = position();
+      if (isYouTube() ? live.current.playing : !el.paused) {
+        const delta = now - previousTick.current;
         if (delta > 0 && delta < 2.5) sessionSeconds.current += delta;
-        previousTick.current = el.currentTime;
+        previousTick.current = now;
+        if (isYouTube()) setTime(now);
       }
+      if (!live.current.playing) return;
       storage.write("player_state", {
         ...live.current,
-        time: el.currentTime,
+        time: now,
         volume: el.volume,
         playing: undefined,
         current: undefined,
       });
     }, 1000);
-    const persist = () => flush();
+    const persist = () => {
+      flush();
+      storage.write("player_state", {
+        ...live.current,
+        time: restoreTime.current || position(),
+        volume: audio.current.volume,
+        current: undefined,
+        playing: undefined,
+      });
+    };
+    const visibility = () => {
+      if (document.hidden && isYouTube()) {
+        pauseMedia();
+        setPlaying(false);
+        intent.current = false;
+      }
+    };
+    document.addEventListener("visibilitychange", visibility);
     window.addEventListener("pagehide", persist);
     return () => {
       clearInterval(timer);
       window.removeEventListener("pagehide", persist);
+      document.removeEventListener("visibilitychange", visibility);
       flush();
     };
   }, [flush]);
@@ -281,6 +423,7 @@ export function PlayerProvider({ children }) {
     libraryRef.current.toast("Upcoming queue cleared");
   };
   const failSource = () => {
+    if (isYouTube()) return;
     const el = audio.current;
     if (sourceIndex.current < sources.current.length - 1) {
       sourceIndex.current++;
@@ -369,6 +512,42 @@ export function PlayerProvider({ children }) {
         }}
         onError={failSource}
       />
+      <section
+        className={
+          "youtube-dock " +
+          (location.pathname === "/player" ? "expanded-watch" : "")
+        }
+        style={{
+          display:
+            current?.source === "youtube" && !videoClosed ? "block" : "none",
+        }}
+        aria-label="YouTube video player"
+      >
+        <div className="youtube-dock-heading">
+          <span>Now watching · YouTube</span>
+          <a
+            href={current?.permalink}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Watch on YouTube ↗
+          </a>
+          <button
+            className="video-close"
+            aria-label="Close video and pause"
+            onClick={() => {
+              intent.current = false;
+              pauseMedia();
+              setPlaying(false);
+              setLoading(false);
+              setVideoClosed(true);
+            }}
+          >
+            ×
+          </button>
+        </div>
+        <div className="youtube-frame" ref={youtubeMount} />
+      </section>
       {children}
     </PlayerContext.Provider>
   );

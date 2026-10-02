@@ -26,7 +26,7 @@ export function Genres() {
           >
             <AudioLines size={30} />
             <h3>{m.name}</h3>
-            <span>A Sona mix</span>
+            <span>A Vibe mix</span>
           </Link>
         ))}
       </div>
@@ -47,7 +47,7 @@ export default function Genre() {
   return (
     <div className="page">
       <div className="genre-hero" style={{ "--genre-color": g.color }}>
-        <span className="eyebrow">SONA COLLECTION</span>
+        <span className="eyebrow">VIBE COLLECTION</span>
         <h1>{g.label || genre}</h1>
         <p>{g.subtitle}</p>
         <div className="hero-actions">

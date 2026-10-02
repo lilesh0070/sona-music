@@ -1,3 +1,4 @@
+// Retain the original storage namespace so existing libraries survive the rename.
 const prefix = "sona_";
 const memory = new Map();
 let storageWarning = false;

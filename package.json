@@ -1,14 +1,15 @@
 {
-  "name": "sona-music",
-  "version": "1.0.0",
+  "name": "vibe",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build",
+    "build": "vite build && node scripts/finalize-build.mjs",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node tests/recommendations.test.js",
-    "deploy": "npm run build && gh-pages -d dist"
+    "test": "node tests/run.mjs",
+    "deploy": "npm run build && gh-pages -d dist",
+    "catalog": "node scripts/refresh-catalog.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",

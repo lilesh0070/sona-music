@@ -22,5 +22,9 @@ export default function useAsync(loader, deps = []) {
     return () => controller.abort();
   }, [...deps, version]);
   const retry = useCallback(() => setVersion((v) => v + 1), []);
+  useEffect(() => {
+    window.addEventListener("vibe:catalog", retry);
+    return () => window.removeEventListener("vibe:catalog", retry);
+  }, [retry]);
   return { ...state, retry };
 }

@@ -23,7 +23,7 @@ export function GenreTiles({ items = genres }) {
           style={{ background: g.color }}
           key={g.name}
         >
-          <span>SONA COLLECTION / {String(i + 1).padStart(2, "0")}</span>
+          <span>VIBE COLLECTION / {String(i + 1).padStart(2, "0")}</span>
           <h3>{g.label || g.name}</h3>
           <p>{g.subtitle}</p>
           <div className="genre-disc">
@@ -84,6 +84,15 @@ export default function Search() {
           </IconButton>
         )}
       </div>
+      <p className="catalog-notice">
+        Automatic Hindi, Punjabi & Haryanvi catalog + Audius.{" "}
+        <Link to="/updates">Enable wider YouTube search</Link>
+      </p>
+      {result.warning && (
+        <p className="catalog-notice" role="status">
+          YouTube search: {result.warning}
+        </p>
+      )}
       {!query ? (
         <>
           <div className="section-heading">
@@ -140,7 +149,7 @@ export default function Search() {
           ) : empty ? (
             <Empty
               title={`No matches for “${query}”`}
-              text="Try a different spelling, artist, or genre. This catalog features independent music."
+              text="Try a different spelling, artist, or genre. The default catalog includes recent Indian releases and independent music. Enable wider YouTube search in Updates."
             />
           ) : (
             <>

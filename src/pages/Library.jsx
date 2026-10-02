@@ -300,6 +300,9 @@ export function Profile() {
       </div>
       <section className="settings-card">
         <h2>Make yourself at home</h2>
+        <Link className="button secondary" to="/updates">
+          Updates, install & downloads
+        </Link>
         <form
           onSubmit={(e) => {
             e.preventDefault();
