@@ -1,1 +1,0 @@
-import{j as t,k as e,L as a}from"./index-C2mwWtUY.js";function o(){return t.jsx("div",{className:"page",children:t.jsx(e,{title:"A little off the beat",text:"We couldn\u2019t find this page. Let\u2019s get you back to the music.",action:t.jsx(a,{className:"button primary",to:"/",children:"Back to home"})})})}export{o as default};
