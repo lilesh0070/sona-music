@@ -3236,7 +3236,7 @@ form > input {
 }
 .video-art-space {
   visibility: hidden;
-  height: 300px;
+  height: 345px;
 }
 .full-player:has(.video-art-space) .full-player-content {
   padding-top: 20px;
@@ -3261,7 +3261,7 @@ body:has(.youtube-dock[style*="block"]) .content-footer {
     transform: none;
   }
   .video-art-space {
-    height: 230px;
+    height: 270px;
   }
   .update-actions .button {
     width: 100%;

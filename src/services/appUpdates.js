@@ -1,4 +1,4 @@
-import {version} from '../../package.json';
+import { version } from "../../package.json";
 export const APP_VERSION = version;
 export const REPOSITORY = "https://github.com/lilesh0070/vibe";
 let installPrompt;
@@ -40,10 +40,14 @@ export async function checkUpdate() {
     ?.getAttribute("src")
     ?.split("/")
     .pop();
+  const currentRevision = document.querySelector(
+    'meta[name="vibe-build"]',
+  )?.content;
   return {
     ...latest,
     available:
       latest.version !== APP_VERSION ||
+      (latest.revision && latest.revision !== currentRevision) ||
       (latest.entry && latest.entry !== current) ||
       Boolean(registration?.waiting),
   };

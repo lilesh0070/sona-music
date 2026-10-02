@@ -20,6 +20,13 @@ const revision = createHash("sha256")
   .digest("hex")
   .slice(0, 12);
 await fs.writeFile(
+  dist + "/index.html",
+  html.replace(
+    "</head>",
+    `<meta name="vibe-build" content="${revision}" /></head>`,
+  ),
+);
+await fs.writeFile(
   dist + "/version.json",
   JSON.stringify({
     version: pkg.version,
