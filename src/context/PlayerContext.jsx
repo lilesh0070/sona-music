@@ -64,7 +64,17 @@ export function PlayerProvider({ children }) {
     started = useRef(false);
   const current = queue[index] || null;
   const live = useRef({});
-  live.current = { queue, index, current, playing, shuffle, repeat, time };
+  live.current = {
+    queue,
+    index,
+    current,
+    playing,
+    shuffle,
+    repeat,
+    time,
+    volume,
+    muted,
+  };
   const flush = useCallback((skipped = false) => {
     const t = active.current;
     if (t && sessionSeconds.current > 0) {
@@ -171,6 +181,7 @@ export function PlayerProvider({ children }) {
   };
   const seek = (value) => {
     if (isYouTube()) {
+      if (!(youtube.current?.getDuration?.() || duration)) return;
       const target = Math.max(
         0,
         Math.min(value, youtube.current?.getDuration?.() || duration),
@@ -243,12 +254,27 @@ export function PlayerProvider({ children }) {
                   },
                   onStateChange: (event) => {
                     if (!isYouTube()) return;
+                    if (
+                      (event.data === 0 || event.data === 1) &&
+                      youtube.current.getVideoData()?.video_id !==
+                        live.current.current?.videoId
+                    )
+                      return;
                     if (event.data === 1) {
                       setPlaying(true);
                       setLoading(false);
                       setError("");
                       intent.current = true;
-                      setDuration(youtube.current.getDuration());
+                      const actualDuration = youtube.current.getDuration();
+                      setDuration(actualDuration);
+                      if (actualDuration > 0)
+                        setQueue((q) =>
+                          q.map((t) =>
+                            t.id === live.current.current?.id
+                              ? { ...t, duration: actualDuration }
+                              : t,
+                          ),
+                        );
                       if (!started.current) {
                         started.current = true;
                         libraryRef.current.recordPlay(live.current.current);
@@ -258,6 +284,12 @@ export function PlayerProvider({ children }) {
                       setLoading(false);
                       intent.current = false;
                     } else if (event.data === 3) setLoading(true);
+                    else if (event.data === 5)
+                      setDuration(
+                        youtube.current.getDuration() ||
+                          live.current.current?.duration ||
+                          0,
+                      );
                     else if (event.data === 0) {
                       setPlaying(false);
                       recordEvent("track_completed", live.current.current);
@@ -270,8 +302,10 @@ export function PlayerProvider({ children }) {
           }
           await youtubeReady.current;
           if (ctrl.signal.aborted) return;
-          youtube.current.setVolume(volume * 100);
-          muted ? youtube.current.mute() : youtube.current.unMute();
+          youtube.current.setVolume(live.current.volume * 100);
+          live.current.muted
+            ? youtube.current.mute()
+            : youtube.current.unMute();
           const item = {
             videoId: current.videoId,
             startSeconds: restoreTime.current,
@@ -496,6 +530,7 @@ export function PlayerProvider({ children }) {
         }}
         onCanPlay={() => setLoading(false)}
         onLoadedMetadata={() => {
+          if (isYouTube()) return;
           const el = audio.current;
           setDuration(
             Number.isFinite(el.duration) ? el.duration : current?.duration || 0,
@@ -505,7 +540,9 @@ export function PlayerProvider({ children }) {
             restoreTime.current = 0;
           }
         }}
-        onTimeUpdate={() => setTime(audio.current.currentTime)}
+        onTimeUpdate={() => {
+          if (!isYouTube()) setTime(audio.current.currentTime);
+        }}
         onEnded={() => {
           recordEvent("track_completed", live.current.current);
           advance(true);

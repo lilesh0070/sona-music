@@ -1,4 +1,5 @@
-export const APP_VERSION = "2.0.0";
+import {version} from '../../package.json';
+export const APP_VERSION = version;
 export const REPOSITORY = "https://github.com/lilesh0070/vibe";
 let installPrompt;
 window.addEventListener("beforeinstallprompt", (event) => {

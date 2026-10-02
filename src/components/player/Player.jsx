@@ -82,6 +82,7 @@ export function Progress() {
       <input
         type="range"
         aria-label="Seek"
+        disabled={!p.duration}
         min="0"
         max={p.duration || 1}
         step=".1"
@@ -91,7 +92,11 @@ export function Progress() {
           "--range-progress": `${p.duration ? (p.time / p.duration) * 100 : 0}%`,
         }}
       />
-      <span>{formatTime(p.duration)}</span>
+      <span>
+        {p.current?.source === "youtube" && !p.duration
+          ? "—"
+          : formatTime(p.duration)}
+      </span>
     </div>
   );
 }
