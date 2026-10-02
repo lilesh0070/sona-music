@@ -1,0 +1,1 @@
+import{u as o}from"./useAsync-Cdrn9ZP-.js";import{u as n,l as i,s as c}from"./index-C2mwWtUY.js";function m(){const{liked:e,history:s,playlists:r,searches:t}=n();return o(a=>i({liked:e,history:s,playlists:r,searches:t,stats:c.read("preferences",{})},a),[e.length,s[0]?.id,r.length,t[0]])}export{m as u};
