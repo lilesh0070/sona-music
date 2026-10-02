@@ -1,6 +1,10 @@
+import { isNewerVersion } from "../utils/versions";
 import { version } from "../../package.json";
 export const APP_VERSION = version;
 export const REPOSITORY = "https://github.com/lilesh0070/vibe";
+export const APK_DOWNLOAD = REPOSITORY + "/releases/latest/download/Vibe.apk";
+export const ANDROID_VERSION =
+  navigator.userAgent.match(/VibeAndroid\/(\d+\.\d+\.\d+)/)?.[1] || null;
 let installPrompt;
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
@@ -14,6 +18,28 @@ export async function installApp() {
   const choice = await installPrompt.userChoice;
   installPrompt = null;
   return choice.outcome === "accepted";
+}
+export async function checkAndroidUpdate() {
+  const response = await fetch(
+    "https://api.github.com/repos/lilesh0070/vibe/releases/latest",
+    {
+      cache: "no-store",
+      signal: AbortSignal.timeout(12000),
+    },
+  );
+  if (!response.ok)
+    throw Error(
+      "Could not check Android updates. Use Download Android APK to get the latest release.",
+    );
+  const release = await response.json();
+  const asset = release.assets?.find((a) => a.name === "Vibe.apk");
+  const latestVersion = release.tag_name?.replace(/^v/, "");
+  if (!asset || !/^\d+\.\d+\.\d+$/.test(latestVersion))
+    throw Error("No Android APK release is available yet.");
+  return {
+    version: latestVersion,
+    available: isNewerVersion(latestVersion, ANDROID_VERSION),
+  };
 }
 export async function registerApp() {
   if (!("serviceWorker" in navigator)) return;

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+ <style name="VibeTheme" parent="android:style/Theme.Material.NoActionBar">
+  <item name="android:windowBackground">#111214</item>
+  <item name="android:colorAccent">#FF7A66</item>
+  <item name="android:statusBarColor">#111214</item>
+  <item name="android:navigationBarColor">#111214</item>
+  <item name="android:windowLightStatusBar">false</item>
+  <item name="android:windowLightNavigationBar">false</item>
+ </style>
+</resources>

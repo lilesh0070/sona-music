@@ -104,3 +104,19 @@ Optional account synchronization, additional licensed catalogs, offline PWA supp
 ## License
 
 Application source is MIT licensed. Third-party recordings, artist images and API content remain subject to their creators’ rights and provider terms.
+
+## Android APK
+
+Download the installable Android package from [the latest GitHub release](https://github.com/lilesh0070/vibe/releases/latest/download/Vibe.apk). Requires Android 8.0+ and internet access. The APK opens the hosted Vibe app in Android System WebView, including the visible official YouTube player. Android's browser downloads APKs; the system installer asks the user to confirm installation. Music playback pauses when the app leaves the foreground.
+
+**Updates & downloads** provides a direct APK download and, inside the Android app, a separate Android-version check. Web app updates use **Check for updates → Update & restart**. The Android package version is independent of the hosted web version. Install new APKs over the existing Vibe app to retain its local library; browser/PWA libraries are separate from Android WebView storage.
+
+The local source repository is at `D:\Vibe`. Build an APK with Android SDK platform 35, Build Tools 36.0.0, and JDK 17+:
+
+```powershell
+$env:ANDROID_HOME = 'D:\dev\android-sdk'
+$env:JAVA_HOME = 'D:\dev\jdk17'
+pwsh -NoProfile -File .\android\build.ps1
+```
+
+The build script compiles, aligns and signs `android/build/Vibe.apk`, verifies signatures and writes `SHA256SUMS.txt`. The private release key and its generated password remain in ignored `android/signing/`; preserve them privately for future APK updates, and never upload them. Android source, the build script and web source are public; signing credentials and build caches are excluded.

@@ -3,6 +3,9 @@ import { Download, RefreshCw, Github, CheckCircle2 } from "lucide-react";
 import {
   APP_VERSION,
   REPOSITORY,
+  APK_DOWNLOAD,
+  ANDROID_VERSION,
+  checkAndroidUpdate,
   checkUpdate,
   applyUpdate,
   installApp,
@@ -18,6 +21,8 @@ export default function Updates() {
     [installable, setInstallable] = useState(canInstall),
     [key, setKey] = useState(() => storage.read("youtube_key", ""));
   const l = useLibrary();
+  const [androidMessage, setAndroidMessage] = useState("");
+  const [androidChecking, setAndroidChecking] = useState(false);
   const [feedMessage, setFeedMessage] = useState(""),
     [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
@@ -82,6 +87,49 @@ export default function Updates() {
         {latest?.available && <p>Restart will stop current playback.</p>}
       </section>
       <section className="settings-card">
+        <h2>Android APK</h2>
+        <p>
+          {ANDROID_VERSION
+            ? `Installed Android app: Vibe ${ANDROID_VERSION}`
+            : "Download Vibe for Android 8.0 or newer."}
+        </p>
+        <p>
+          Web updates arrive through Check for updates above. Android package
+          updates download from GitHub and install after Android asks for
+          confirmation. Keep the existing app installed to preserve its library.
+        </p>
+        <div className="update-actions">
+          <a className="button primary" href={APK_DOWNLOAD}>
+            <Download size={18} />
+            Download Android APK
+          </a>
+          {ANDROID_VERSION && (
+            <button
+              className="button secondary"
+              disabled={androidChecking}
+              onClick={async () => {
+                setAndroidChecking(true);
+                try {
+                  const result = await checkAndroidUpdate();
+                  setAndroidMessage(
+                    result.available
+                      ? `Android ${result.version} is ready. Download the APK and install it to update.`
+                      : `Android app ${ANDROID_VERSION} is up to date.`,
+                  );
+                } catch (e) {
+                  setAndroidMessage(e.message);
+                } finally {
+                  setAndroidChecking(false);
+                }
+              }}
+            >
+              {androidChecking ? "Checking…" : "Check Android updates"}
+            </button>
+          )}
+        </div>
+        <p role="status">{androidMessage}</p>
+      </section>
+      <section className="settings-card">
         <h2>Take Vibe with you</h2>
         <p>
           Install Vibe as an app on your phone or computer. Music playback
@@ -117,7 +165,7 @@ export default function Updates() {
             GitHub repository
           </a>
         </div>
-        {!installable && (
+        {!installable && !ANDROID_VERSION && (
           <p>
             Chrome / Edge: browser menu → Install app. iPhone: Safari → Share →
             Add to Home Screen. Already installed? Use Check for updates above.
