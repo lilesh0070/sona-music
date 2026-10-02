@@ -1,5 +1,5 @@
 import { NavLink, Link, useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   House,
   Search,
@@ -18,7 +18,6 @@ import {
   Music2,
 } from "lucide-react";
 import { useLibrary } from "../../context/LibraryContext";
-import { usePlayer } from "../../context/PlayerContext";
 import { IconButton } from "../common/UI";
 const primary = [
   ["/", House, "Home"],
@@ -57,10 +56,27 @@ export function Logo() {
 }
 export default function Layout({ children }) {
   const l = useLibrary(),
-    p = usePlayer(),
     navigate = useNavigate(),
     location = useLocation();
   const [query, setQuery] = useState("");
+  const searchInput = useRef(null);
+  useEffect(() => {
+    const focusSearch = (event) => {
+      if (
+        event.key === "/" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !/INPUT|TEXTAREA|SELECT/.test(event.target.tagName) &&
+        !event.target.isContentEditable &&
+        !document.querySelector('[role="dialog"]')
+      ) {
+        event.preventDefault();
+        searchInput.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
+  }, []);
   useEffect(() => {
     document.querySelector(".main-scroll")?.scrollTo(0, 0);
   }, [location.pathname]);
@@ -134,6 +150,7 @@ export default function Layout({ children }) {
           >
             <Search size={17} />
             <input
+              ref={searchInput}
               aria-label="Search music"
               placeholder="What do you want to listen to?"
               value={query}

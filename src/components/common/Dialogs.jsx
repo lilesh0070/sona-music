@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Music2, CheckCircle2 } from "lucide-react";
 import { useLibrary } from "../../context/LibraryContext";
@@ -6,12 +5,10 @@ import { Modal, Artwork } from "./UI";
 export default function Dialogs() {
   const l = useLibrary();
   const navigate = useNavigate();
-  const [name, setName] = useState("");
   const d = l.dialog;
   if (!d) return null;
   const close = () => {
     l.setDialog(null);
-    setName("");
   };
   if (d.type === "add")
     return (
