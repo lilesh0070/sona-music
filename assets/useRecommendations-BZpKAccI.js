@@ -1,1 +1,0 @@
-import{u as i}from"./useAsync-BKMuo6tE.js";import{u as n,s as m}from"./index-WygYNgR9.js";import{d as c}from"./musicApi-Ba55auk7.js";function f(){var o;const{liked:e,history:s,playlists:r,searches:t}=n();return i(a=>c({liked:e,history:s,playlists:r,searches:t,stats:m.read("preferences",{})},a),[e.length,(o=s[0])==null?void 0:o.id,r.length,t[0]])}export{f as u};
